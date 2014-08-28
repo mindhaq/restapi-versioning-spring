@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.is;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -56,16 +57,14 @@ public class AddressIT {
         addressService.save(address);
     }
 
+    /* ------------------------------------------------------------------- */
+
     @Test
     public void should_respond_with_address_json_on_v1_url() throws Exception {
         mockMvc.perform(get("/apiurl/v1/address").accept(APPLICATION_JSON)) //
                .andExpect(status().isOk())                                  //
                .andExpect(jsonContent())                                    //
                .andExpect(jsonPath("$.address", is("12043 Berlin")));
-    }
-
-    private ResultMatcher jsonContent() {
-        return content().contentType(APPLICATION_JSON);
     }
 
     @Test
@@ -78,9 +77,21 @@ public class AddressIT {
     }
 
     @Test
-    public void should_respond_with_400_on_v3_url() throws Exception {
+    public void should_respond_with_404_on_v3_url() throws Exception {
         mockMvc.perform(get("/apiurl/v3/address").accept(APPLICATION_JSON)) //
-               .andExpect(status().is4xxClientError());
+               .andExpect(status().isNotFound());
+    }
+
+    @Test
+    public void should_respond_with_created_on_v1_url() throws Exception {
+        mockMvc.perform(post("/apiurl/v1/address").param("address", "12055 Berlin")) //
+               .andExpect(status().isAccepted());
+    }
+
+    @Test
+    public void should_respond_with_created_on_v2_url() throws Exception {
+        mockMvc.perform(post("/apiurl/v2/address").param("zip", "12055").param("town", "Berlin")) //
+               .andExpect(status().isAccepted());
     }
 
     /* ------------------------------------------------------------------- */
@@ -114,6 +125,24 @@ public class AddressIT {
                .andExpect(status().isNotFound());
     }
 
+    @Test
+    public void should_respond_with_created_with_v1_header() throws Exception {
+        mockMvc.perform(post("/apiheader/address")    //
+                   .header("X-API-Version", "v1")     //
+                   .param("address", "12055 Berlin")) //
+               .andExpect(status().isAccepted());     //
+    }
+
+    @Test
+    public void should_respond_with_created_with_v2_header() throws Exception {
+        mockMvc.perform(
+                   post("/apiheader/address")         //
+                   .header("X-API-Version", "v2")     //
+                   .param("zip", "12055")             //
+                   .param("town", "Berlin"))          //
+               .andExpect(status().isAccepted());     //
+    }
+
     /* ------------------------------------------------------------------- */
 
     @Test
@@ -137,5 +166,28 @@ public class AddressIT {
     public void should_respond_with_not_acceptable_with_v3_accept() throws Exception {
         mockMvc.perform(get("/apiaccept/address").accept("application/vnd.company.app-v3+json")) //
                .andExpect(status().isNotAcceptable());
+    }
+
+    @Test
+    public void should_respond_with_created_with_v1_accept() throws Exception {
+        mockMvc.perform(
+                   post("/apiaccept/address")                         //
+                   .accept("application/vnd.company.app-v1+json")     //
+                   .param("address", "12055 Berlin"))                 //
+               .andExpect(status().isAccepted());                     //
+    }
+
+    @Test
+    public void should_respond_with_created_with_v2_accept() throws Exception {
+        mockMvc.perform(
+                   post("/apiaccept/address")                         //
+                   .accept("application/vnd.company.app-v2+json")     //
+                   .param("zip", "12055")                             //
+                   .param("town", "Berlin"))                          //
+               .andExpect(status().isAccepted());                     //
+    }
+
+    private ResultMatcher jsonContent() {
+        return content().contentType(APPLICATION_JSON);
     }
 }
